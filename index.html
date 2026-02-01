@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Food Prediction | calAI</title>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Google Font -->
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+
+body {
+    background: radial-gradient(circle at top, #020617, #000);
+    color: #fff;
+}
+
+/* ===== HEADER ===== */
+header {
+    width: 100%;
+    padding: 20px;
+    text-align: center;
+    background: linear-gradient(90deg, #2563eb, #9333ea);
+    font-size: 24px;
+    font-weight: 600;
+    box-shadow: 0 6px 25px rgba(0,0,0,0.6);
+}
+
+/* ===== CARD ===== */
+.card {
+    max-width: 460px;
+    margin: 25px auto;
+    padding: 22px;
+    background: rgba(17, 24, 39, 0.65);
+    backdrop-filter: blur(16px);
+    border-radius: 22px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.7);
+}
+
+h2 {
+    text-align: center;
+    margin-bottom: 12px;
+}
+
+/* ===== BUTTON ===== */
+button {
+    width: 100%;
+    padding: 14px;
+    margin-top: 12px;
+    background: linear-gradient(90deg, #22c55e, #16a34a);
+    border: none;
+    color: white;
+    font-size: 16px;
+    border-radius: 14px;
+    cursor: pointer;
+}
+
+button:hover {
+    opacity: 0.9;
+}
+
+/* ===== IMAGE ===== */
+img {
+    width: 100%;
+    margin-top: 14px;
+    border-radius: 16px;
+}
+
+/* ===== RESULT ===== */
+.result {
+    margin-top: 14px;
+    padding: 14px;
+    background: rgba(31, 41, 55, 0.7);
+    border-radius: 16px;
+}
+
+/* ===== PROGRESS ===== */
+.progress-container {
+    width: 100%;
+    height: 10px;
+    background: #1e293b;
+    border-radius: 20px;
+    overflow: hidden;
+    margin-top: 6px;
+}
+
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #38bdf8, #22c55e);
+    transition: width 1.2s ease-in-out;
+}
+
+/* ===== LOADER ===== */
+.loader {
+    display: none;
+    margin: 20px auto;
+    width: 50px;
+    height: 50px;
+    border: 6px solid #1e293b;
+    border-top: 6px solid #38bdf8;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    100% { transform: rotate(360deg); }
+}
+
+/* ===== MOBILE ===== */
+@media (max-width: 520px) {
+    header {
+        font-size: 20px;
+    }
+    .card {
+        margin: 18px;
+        padding: 18px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header>🍽️ Food Prediction</header>
+
+<!-- Upload -->
+<div class="card">
+    <h2>Upload Food Image</h2>
+    <input type="file" id="file" accept="image/*">
+    <button onclick="predict()">Predict</button>
+    <img id="preview">
+</div>
+
+<!-- Loader -->
+<div class="loader" id="loader"></div>
+
+<!-- Results -->
+<div class="card">
+    <h2 id="type">Prediction Result</h2>
+    <div id="results"></div>
+</div>
+
+<!-- Chart -->
+<div class="card">
+    <h2>Confidence Analysis</h2>
+    <canvas id="confidenceChart"></canvas>
+</div>
+
+<script>
+let chart = null;
+
+function predict() {
+    const file = document.getElementById("file").files[0];
+    if (!file) return alert("Please upload an image");
+
+    document.getElementById("preview").src = URL.createObjectURL(file);
+    document.getElementById("loader").style.display = "block";
+    document.getElementById("results").innerHTML = "";
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    fetch("/predict", {
+        method: "POST",
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById("loader").style.display = "none";
+        document.getElementById("type").innerText = "Detected: " + data.type;
+
+        let html = "";
+        let labels = [];
+        let values = [];
+
+        data.top_5.forEach(p => {
+            labels.push(p.class);
+            values.push(p.confidence);
+
+            html += `
+                <div class="result">
+                    <b>${p.class}</b><br>
+                    Confidence: ${p.confidence}%<br>
+                    Calories: ${p.calories}
+                    <div class="progress-container">
+                        <div class="progress-bar" style="width:${p.confidence}%"></div>
+                    </div>
+                </div>
+            `;
+        });
+
+        document.getElementById("results").innerHTML = html;
+        drawChart(labels, values);
+    });
+}
+
+function drawChart(labels, data) {
+    if (chart) chart.destroy();
+
+    chart = new Chart(document.getElementById("confidenceChart"), {
+        type: "bar",
+        data: {
+            labels: labels,
+            datasets: [{
+                label: "Confidence (%)",
+                data: data
+            }]
+        },
+        options: {
+            scales: {
+                y: { beginAtZero: true, max: 100 }
+            }
+        }
+    });
+}
+</script>
+
+</body>
+</html>
