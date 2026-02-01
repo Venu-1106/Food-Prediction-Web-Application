@@ -7,11 +7,11 @@ gunicorn==24.1.1
 
 # PyTorch CPU version compatible with Python 3.13
 torch==2.10.0
-torchvision==0.15.2
-torchaudio==2.0.2
+torchvision==0.25.0
+torchaudio==2.10.2
 
 # Image handling
 Pillow==10.1.0
 
-# Optional: for numerical computations
+# Numerical computations
 numpy==1.26.0
